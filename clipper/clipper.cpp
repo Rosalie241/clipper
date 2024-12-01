@@ -69,7 +69,7 @@ static void show_error(const char* error)
     (void)getchar();
 }
 
-static BOOL console_handler(DWORD signal)
+static BOOL WINAPI console_handler(DWORD signal)
 {
 
     if (signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT)
