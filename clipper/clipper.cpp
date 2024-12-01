@@ -25,6 +25,12 @@
 
 enum
 {
+    PS4_RIFFMASTER_VENDOR_ID  = 0x0E6F,
+    PS4_RIFFMASTER_PRODUCT_ID = 0x024A,
+};
+
+enum
+{
     // Frets
     BTN_MASK_FRET_1 = 0b00000001, // Green
     BTN_MASK_FRET_2 = 0b00000010, // Red
@@ -55,8 +61,17 @@ static bool l_Running = true;
 // Local Functions
 //
 
+static void show_error(const char* error)
+{
+    puts(error);
+
+    puts("Press a key to continue...");
+    (void)getchar();
+}
+
 static BOOL console_handler(DWORD signal)
 {
+
     if (signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT)
     {
         l_Running = false;
@@ -65,106 +80,59 @@ static BOOL console_handler(DWORD signal)
     return TRUE;
 }
 
-//
-// Exported Functions
-//
-
-int main()
+static hid_device* find_device(void)
 {
-    if (!SetConsoleCtrlHandler(console_handler, TRUE))
-    {
-        return 1;
-    }
+    hid_device* device = nullptr;
 
-    hid_device* handle = nullptr;
-
-    int ret = hid_init();
-
-    printf("[INFO] Searching for device...\n");
+    puts("[INFO] Waiting for device...");
 
     while (l_Running)
     {
-        handle = hid_open(0x0E6F, 0x024A, nullptr);
-        if (handle != nullptr)
+        device = hid_open(PS4_RIFFMASTER_VENDOR_ID, PS4_RIFFMASTER_PRODUCT_ID, nullptr);
+        if (device != nullptr)
         {
-            printf("[INFO] Device found!\n");
+            puts("[INFO] Device found, polling input...");
             break;
         }
         else
         { // while we're waiting, dont waste too many cycles
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
         }
     }
 
-    // initialize vigem
-    PVIGEM_CLIENT client = vigem_alloc();
-    if (client == nullptr)
-    {
-        printf("[ERROR] vigem_alloc() failed!\n");
-    }
+    return device;
+}
 
-    VIGEM_ERROR ret2 = vigem_connect(client);
-    if (ret2 != VIGEM_ERROR_NONE)
-    {
-        printf("[ERROR] vigem_connect() failed!\n");
-    }
-
-    PVIGEM_TARGET virtual_pad = vigem_target_x360_alloc();
-
-    ret2 = vigem_target_add(client, virtual_pad);
-    if (ret2 != VIGEM_ERROR_NONE)
-    {
-        printf("[ERROR] vigem_target_add() failed!\n");
-    }
-
+static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET gamepad)
+{
+    int ret;
     unsigned char buffer[64];
-
     XUSB_REPORT virtual_report = { 0 };
-
-    /*
-        XUSB_GAMEPAD_DPAD_UP    => 0
-        XUSB_GAMEPAD_DPAD_DOWN  => 1
-        XUSB_GAMEPAD_DPAD_LEFT  => 2
-        XUSB_GAMEPAD_DPAD_RIGHT => 3
-    
-        XUSB_GAMEPAD_START => 4
-        XUSB_GAMEPAD_BACK  => 5
-        XUSB_GAMEPAD_LEFT_THUMB => 6
-
-
-        XUSB_GAMEPAD_LEFT_SHOULDER  => 8
-        XUSB_GAMEPAD_RIGHT_SHOULDER => 9
-        XUSB_GAMEPAD_GUIDE => 10
-
-        XUSB_GAMEPAD_A => 12
-        XUSB_GAMEPAD_B => 13
-        XUSB_GAMEPAD_X => 14
-    */
 
     while (l_Running)
     {
-        ret = hid_read(handle, buffer, sizeof(buffer));
+        ret = hid_read(device, buffer, sizeof(buffer));
         if (ret == -1 || ret != sizeof(buffer))
         {
-            printf("[ERROR] hid_read() failed!\n");
+            puts("[WARNING] Failed to read packets, device disconnected?");
             break;
         }
 
         buffer[5] &= 0b00001111;
 
-        virtual_report.wButtons = ((buffer[46] & BTN_MASK_FRET_1) << (8-0))  |
-                                  ((buffer[46] & BTN_MASK_FRET_2) << (12-1)) |
-                                  ((buffer[46] & BTN_MASK_FRET_3) << (13-2)) |
-                                  ((buffer[46] & BTN_MASK_FRET_4) << (14-3)) |
-                                  ((buffer[46] & BTN_MASK_FRET_5) << (9-4))  |
-                                  ((buffer[47] & BTN_MASK_FRET_1) << (8-0))  |
-                                  ((buffer[47] & BTN_MASK_FRET_2) << (12-1)) |
-                                  ((buffer[47] & BTN_MASK_FRET_3) << (13-2)) |
-                                  ((buffer[47] & BTN_MASK_FRET_4) << (14-3)) |
-                                  ((buffer[47] & BTN_MASK_FRET_5) << (9-4))  |
-                                  ((buffer[6]  & BTN_MASK_STICK)  >> (0)) |
-                                  ((buffer[6]  & BTN_MASK_START)  >> (1)) |
-                                  ((buffer[6]  & BTN_MASK_SELECT) << (1)) |
+        virtual_report.wButtons = ((buffer[46] & BTN_MASK_FRET_1) << (8 - 0)) |
+                                  ((buffer[46] & BTN_MASK_FRET_2) << (12 - 1)) |
+                                  ((buffer[46] & BTN_MASK_FRET_3) << (13 - 2)) |
+                                  ((buffer[46] & BTN_MASK_FRET_4) << (14 - 3)) |
+                                  ((buffer[46] & BTN_MASK_FRET_5) << (9 - 4)) |
+                                  ((buffer[47] & BTN_MASK_FRET_1) << (8 - 0)) |
+                                  ((buffer[47] & BTN_MASK_FRET_2) << (12 - 1)) |
+                                  ((buffer[47] & BTN_MASK_FRET_3) << (13 - 2)) |
+                                  ((buffer[47] & BTN_MASK_FRET_4) << (14 - 3)) |
+                                  ((buffer[47] & BTN_MASK_FRET_5) << (9 - 4)) |
+                                  ((buffer[6]  & BTN_MASK_STICK)  >> (0))  |
+                                  ((buffer[6]  & BTN_MASK_START)  >> (1))  |
+                                  ((buffer[6]  & BTN_MASK_SELECT) << (1))  |
                                   ((buffer[7]  & BTN_MASK_HOME)   << (10)) |
                                   ((buffer[5] == 0b0000000000) // thank you @JaxonWasTaken for this :)
                                         + ((buffer[5] == 0b000000100) << 1)
@@ -177,15 +145,86 @@ int main()
         virtual_report.sThumbLX = buffer[1];
         virtual_report.sThumbLY = buffer[2];
 
-        vigem_target_x360_update(client, virtual_pad, virtual_report);
+        vigem_target_x360_update(client, gamepad, virtual_report);
+    }
+}
+
+//
+// Exported Functions
+//
+
+int main()
+{
+    // set console handler
+    if (!SetConsoleCtrlHandler(console_handler, TRUE))
+    {
+        show_error("[ERROR] Failed to set console handler!");
+        return 1;
     }
 
+    // initialize ViGEm
+    PVIGEM_CLIENT client = vigem_alloc();
+    if (client == nullptr)
+    {
+        show_error("[ERROR] Failed to allocate memory for ViGEm!\n");
+        return 1;
+    }
 
-    hid_close(handle);
-    hid_exit();
+    VIGEM_ERROR vigem_ret = vigem_connect(client);
+    if (vigem_ret != VIGEM_ERROR_NONE)
+    {
+        show_error("[ERROR] Failed to connect to ViGEm driver!\n");
+        vigem_free(client);
+        return 1;
+    }
 
-    vigem_target_remove(client, virtual_pad);
-    vigem_target_free(virtual_pad);
+    PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
+    if (gamepad == nullptr)
+    {
+        show_error("[ERROR] Failed to allocate virtual gamepad!\n");
+        vigem_target_free(gamepad);
+        vigem_free(client);
+        return 1;
+    }
+
+    vigem_ret = vigem_target_add(client, gamepad);
+    if (vigem_ret != VIGEM_ERROR_NONE)
+    {
+        show_error("[ERROR] Failed to add virtual gamepad to ViGEm!\n");
+        vigem_target_remove(client, gamepad);
+        vigem_target_free(gamepad);
+        vigem_free(client);
+        return 1;
+    }
+
+    // initialize libhidapi
+    hid_device* device = nullptr;
+    int hid_ret = hid_init();
+    if (hid_ret < 0)
+    {
+        show_error("[ERROR] Failed to initialize libhidapi!\n");
+        vigem_target_remove(client, gamepad);
+        vigem_target_free(gamepad);
+        vigem_free(client);
+        return 1;
+    }
+
+    while (l_Running)
+    {
+        device = find_device();
+        if (device != nullptr)
+        {
+            poll_input(device, client, gamepad);
+        }
+    }
+
+    puts("[INFO] Shutting down...");
+
+    vigem_target_remove(client, gamepad);
+    vigem_target_free(gamepad);
     vigem_free(client);
+
+    hid_close(device);
+    hid_exit();
     return 0;
 }
