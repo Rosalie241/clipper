@@ -56,6 +56,7 @@ enum
 //
 
 static bool l_Running = true;
+static bool l_CleanedUp = false;
 
 //
 // Local Functions
@@ -69,12 +70,16 @@ static void show_error(const char* error)
     (void)getchar();
 }
 
-static BOOL WINAPI console_handler(DWORD signal)
+static BOOL WINAPI signal_handler(DWORD signal)
 {
-
     if (signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT)
     {
         l_Running = false;
+
+        while (!l_CleanedUp)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        }
     }
 
     return TRUE;
@@ -156,7 +161,7 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
 int main()
 {
     // set console handler
-    if (!SetConsoleCtrlHandler(console_handler, TRUE))
+    if (!SetConsoleCtrlHandler(signal_handler, TRUE))
     {
         show_error("[ERROR] Failed to set console handler!");
         return 1;
@@ -226,5 +231,9 @@ int main()
 
     hid_close(device);
     hid_exit();
+
+    // needed for signal handler
+    l_CleanedUp = true;
+
     return 0;
 }
