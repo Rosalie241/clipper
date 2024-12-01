@@ -1,0 +1,6 @@
+[submodule "3rdParty/hidapi"]
+	path = 3rdParty/hidapi
+	url = git@github.com:libusb/hidapi.git
+[submodule "3rdParty/ViGEmClient"]
+	path = 3rdParty/ViGEmClient
+	url = git@github.com:nefarius/ViGEmClient.git
