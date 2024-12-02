@@ -199,7 +199,6 @@ int main()
     if (gamepad == nullptr)
     {
         show_error("[ERROR] Failed to allocate virtual gamepad!\n");
-        vigem_target_free(gamepad);
         vigem_free(client);
         return 1;
     }
@@ -208,7 +207,6 @@ int main()
     if (vigem_ret != VIGEM_ERROR_NONE)
     {
         show_error("[ERROR] Failed to add virtual gamepad to ViGEm!\n");
-        vigem_target_remove(client, gamepad);
         vigem_target_free(gamepad);
         vigem_free(client);
         return 1;
