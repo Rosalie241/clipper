@@ -139,8 +139,8 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
             break;
         }
 
-        // we only care about the last 4 bits for the dpad
-        buffer[BUF_DPAD] &= 0b00001111;
+        // we only care about the last 3 bits for the dpad
+        buffer[BUF_DPAD] &= 0b00000111;
         // lower frets buffer matches the frets buffer
         buffer[BUF_FRETS] |= buffer[BUF_LOWER_FRETS];
 
