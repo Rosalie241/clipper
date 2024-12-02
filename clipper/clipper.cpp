@@ -145,7 +145,7 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
                                         + ((buffer[5] == 0b000000010) << 3));
 
         virtual_report.bLeftTrigger  = buffer[44]; // whammy
-        virtual_report.bRightTrigger = buffer[45]; // tilt
+        virtual_report.bRightTrigger = min((int)(buffer[45] * 1.3f), 255); // tilt
 
         virtual_report.sThumbLX = buffer[1];
         virtual_report.sThumbLY = buffer[2];
