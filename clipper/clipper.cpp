@@ -32,11 +32,12 @@ enum
 enum
 {
     // Frets
-    BTN_MASK_FRET_1 = 0b00000001, // Green
-    BTN_MASK_FRET_2 = 0b00000010, // Red
-    BTN_MASK_FRET_3 = 0b00000100, // Yellow
-    BTN_MASK_FRET_4 = 0b00001000, // Blue
-    BTN_MASK_FRET_5 = 0b00010000, // Orange
+    BTN_MASK_FRET_1     = 0b00000001, // Green
+    BTN_MASK_FRET_2     = 0b00000010, // Red
+    BTN_MASK_FRET_3     = 0b00000100, // Yellow
+    BTN_MASK_FRET_4     = 0b00001000, // Blue
+    BTN_MASK_FRET_2_3_4 = BTN_MASK_FRET_2 | BTN_MASK_FRET_3 | BTN_MASK_FRET_4, // Red, Yellow & Blue
+    BTN_MASK_FRET_5     = 0b00010000, // Orange
 
     // Dpad
     BTN_MASK_DPAD_UP    = 0b00000000, // Up
@@ -49,6 +50,21 @@ enum
     BTN_MASK_START  = 0b00100000, // Start Button
     BTN_MASK_SELECT = 0b00010000, // Select Button
     BTN_MASK_HOME   = 0b00000001, // PS Button
+};
+
+enum
+{
+    BUF_WHAMMY      = 44,
+    BUF_TILT        = 45,
+    BUF_FRETS       = 46,
+    BUF_LOWER_FRETS = 47,
+
+    BUF_STICK_X     = 1,
+    BUF_STICK_Y     = 2,
+
+    BUF_DPAD        = 5,
+    BUF_SYSTEM_BTNS = 6,
+    BUF_PS_BTN      = 7,
 };
 
 //
@@ -123,32 +139,28 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
             break;
         }
 
-        buffer[5] &= 0b00001111;
+        // we only care about the last 4 bits for the dpad
+        buffer[BUF_DPAD] &= 0b00001111;
+        // lower frets buffer matches the frets buffer
+        buffer[BUF_FRETS] |= buffer[BUF_LOWER_FRETS];
 
-        virtual_report.wButtons = ((buffer[46] & BTN_MASK_FRET_1) << (8 - 0)) |
-                                  ((buffer[46] & BTN_MASK_FRET_2) << (12 - 1)) |
-                                  ((buffer[46] & BTN_MASK_FRET_3) << (13 - 2)) |
-                                  ((buffer[46] & BTN_MASK_FRET_4) << (14 - 3)) |
-                                  ((buffer[46] & BTN_MASK_FRET_5) << (9 - 4)) |
-                                  ((buffer[47] & BTN_MASK_FRET_1) << (8 - 0)) |
-                                  ((buffer[47] & BTN_MASK_FRET_2) << (12 - 1)) |
-                                  ((buffer[47] & BTN_MASK_FRET_3) << (13 - 2)) |
-                                  ((buffer[47] & BTN_MASK_FRET_4) << (14 - 3)) |
-                                  ((buffer[47] & BTN_MASK_FRET_5) << (9 - 4)) |
-                                  ((buffer[6]  & BTN_MASK_STICK)  >> (0))  |
-                                  ((buffer[6]  & BTN_MASK_START)  >> (1))  |
-                                  ((buffer[6]  & BTN_MASK_SELECT) << (1))  |
-                                  ((buffer[7]  & BTN_MASK_HOME)   << (10)) |
-                                  ((buffer[5] == 0b0000000000) // thank you @JaxonWasTaken for this :)
-                                        + ((buffer[5] == 0b000000100) << 1)
-                                        + ((buffer[5] == 0b000000110) << 2)
-                                        + ((buffer[5] == 0b000000010) << 3));
+        virtual_report.wButtons = ((buffer[BUF_FRETS] & BTN_MASK_FRET_1)     << (8 - 0))  |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_2_3_4) << (12 - 1)) |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_5)     << (9 - 4))  |
+                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_STICK))          |
+                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_START)  >> (1))  |
+                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_SELECT) << (1))  |
+                                  ((buffer[BUF_PS_BTN] & BTN_MASK_HOME) << (10)) |
+                                  ((buffer[BUF_DPAD] == BTN_MASK_DPAD_UP))         |
+                                  ((buffer[BUF_DPAD] == BTN_MASK_DPAD_DOWN)  << 1) |
+                                  ((buffer[BUF_DPAD] == BTN_MASK_DPAD_LEFT)  << 2) |
+                                  ((buffer[BUF_DPAD] == BTN_MASK_DPAD_RIGHT) << 3);
 
-        virtual_report.bLeftTrigger  = buffer[44]; // whammy
-        virtual_report.bRightTrigger = min((int)(buffer[45] * 1.3f), 255); // tilt
+        virtual_report.bLeftTrigger  = buffer[BUF_WHAMMY]; // whammy
+        virtual_report.bRightTrigger = min((int)(buffer[BUF_TILT] * 1.3f), 255); // tilt
 
-        virtual_report.sThumbLX = buffer[1];
-        virtual_report.sThumbLY = buffer[2];
+        virtual_report.sThumbLX = buffer[BUF_STICK_X];
+        virtual_report.sThumbLY = buffer[BUF_STICK_Y];
 
         vigem_target_x360_update(client, gamepad, virtual_report);
     }
