@@ -183,14 +183,14 @@ int main()
     PVIGEM_CLIENT client = vigem_alloc();
     if (client == nullptr)
     {
-        show_error("[ERROR] Failed to allocate memory for ViGEm!\n");
+        show_error("[ERROR] Failed to allocate memory for ViGEm!");
         return 1;
     }
 
     VIGEM_ERROR vigem_ret = vigem_connect(client);
     if (vigem_ret != VIGEM_ERROR_NONE)
     {
-        show_error("[ERROR] Failed to connect to ViGEm driver!\n");
+        show_error("[ERROR] Failed to connect to ViGEm driver!");
         vigem_free(client);
         return 1;
     }
@@ -198,7 +198,7 @@ int main()
     PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
     if (gamepad == nullptr)
     {
-        show_error("[ERROR] Failed to allocate virtual gamepad!\n");
+        show_error("[ERROR] Failed to allocate virtual gamepad!");
         vigem_free(client);
         return 1;
     }
@@ -206,7 +206,7 @@ int main()
     vigem_ret = vigem_target_add(client, gamepad);
     if (vigem_ret != VIGEM_ERROR_NONE)
     {
-        show_error("[ERROR] Failed to add virtual gamepad to ViGEm!\n");
+        show_error("[ERROR] Failed to add virtual gamepad to ViGEm!");
         vigem_target_free(gamepad);
         vigem_free(client);
         return 1;
@@ -217,7 +217,7 @@ int main()
     int hid_ret = hid_init();
     if (hid_ret < 0)
     {
-        show_error("[ERROR] Failed to initialize libhidapi!\n");
+        show_error("[ERROR] Failed to initialize libhidapi!");
         vigem_target_remove(client, gamepad);
         vigem_target_free(gamepad);
         vigem_free(client);
