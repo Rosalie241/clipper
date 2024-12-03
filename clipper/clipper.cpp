@@ -27,6 +27,12 @@ enum
 {
     PS4_RIFFMASTER_VENDOR_ID  = 0x0E6F,
     PS4_RIFFMASTER_PRODUCT_ID = 0x024A,
+
+    PS4_JAGUAR_VENDOR_ID  = 0x0E6F,
+    PS4_JAGUAR_PRODUCT_ID = 0x0173,
+
+    PS4_STRATOCASTER_VENDOR_ID  = 0x0738,
+    PS4_STRATOCASTER_PRODUCT_ID = 0x8261,
 };
 
 enum
@@ -68,11 +74,28 @@ enum
 };
 
 //
+// Local Structs
+//
+
+struct GuitarDevice
+{
+    int VendorId  = 0;
+    int ProductId = 0;
+    const char ProductName[22] = { 0 };
+};
+
+//
 // Local Variables
 //
 
 static bool l_Running = true;
 static bool l_CleanedUp = false;
+static GuitarDevice l_SupportedDevices[] =
+{
+    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster"},
+    {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , "PDP Jaguar"},
+    {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, "MadCatz Stratocaster"}
+};
 
 //
 // Local Functions
@@ -104,21 +127,29 @@ static BOOL WINAPI signal_handler(DWORD signal)
 static hid_device* find_device(void)
 {
     hid_device* device = nullptr;
+    bool deviceFound = false;
 
     puts("[INFO] Waiting for device...");
 
     while (l_Running)
     {
-        device = hid_open(PS4_RIFFMASTER_VENDOR_ID, PS4_RIFFMASTER_PRODUCT_ID, nullptr);
-        if (device != nullptr)
+        for (const GuitarDevice& guitarDevice : l_SupportedDevices)
         {
-            puts("[INFO] Device found, polling input...");
+            device = hid_open(guitarDevice.VendorId, guitarDevice.ProductId, nullptr);
+            if (device != nullptr)
+            {
+                printf("[INFO] Device found: %s, polling input...\n", guitarDevice.ProductName);
+                deviceFound = true;
+                break;
+            }
+        }
+        if (deviceFound)
+        {
             break;
         }
-        else
-        { // while we're waiting, dont waste too many cycles
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
-        }
+
+        // while we're waiting, dont waste too many cycles
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 
     return device;
