@@ -36,40 +36,37 @@ enum
 
 enum
 {
-    // Frets
-    BTN_MASK_FRET_1     = 0b00000001, // Green
-    BTN_MASK_FRET_2     = 0b00000010, // Red
-    BTN_MASK_FRET_3     = 0b00000100, // Yellow
-    BTN_MASK_FRET_4     = 0b00001000, // Blue
-    BTN_MASK_FRET_2_3_4 = BTN_MASK_FRET_2 | BTN_MASK_FRET_3 | BTN_MASK_FRET_4, // Red, Yellow & Blue
-    BTN_MASK_FRET_5     = 0b00010000, // Orange
+    BTN_MASK_FRET_1     = 0b00000001,
+    BTN_MASK_FRET_2     = 0b00000010,
+    BTN_MASK_FRET_3     = 0b00000100,
+    BTN_MASK_FRET_4     = 0b00001000,
+    BTN_MASK_FRET_2_3_4 = BTN_MASK_FRET_2 | BTN_MASK_FRET_3 | BTN_MASK_FRET_4,
+    BTN_MASK_FRET_5     = 0b00010000,
 
-    // Dpad
-    BTN_MASK_DPAD_UP    = 0b00000000, // Up
-    BTN_MASK_DPAD_DOWN  = 0b00000100, // Down
-    BTN_MASK_DPAD_LEFT  = 0b00000110, // Left
-    BTN_MASK_DPAD_RIGHT = 0b00000010, // Right
+    BTN_MASK_DPAD_UP    = 0b00000000,
+    BTN_MASK_DPAD_DOWN  = 0b00000100,
+    BTN_MASK_DPAD_LEFT  = 0b00000110,
+    BTN_MASK_DPAD_RIGHT = 0b00000010,
 
-    // System buttons
-    BTN_MASK_STICK  = 0b01000000, // Joystick Button
-    BTN_MASK_START  = 0b00100000, // Start Button
-    BTN_MASK_SELECT = 0b00010000, // Select Button
-    BTN_MASK_HOME   = 0b00000001, // PS Button
+    BTN_MASK_STICK  = 0b01000000,
+    BTN_MASK_START  = 0b00100000,
+    BTN_MASK_SELECT = 0b00010000,
+    BTN_MASK_HOME   = 0b00000001,
 };
 
 enum
 {
-    BUF_WHAMMY      = 44,
-    BUF_TILT        = 45,
-    BUF_FRETS       = 46,
-    BUF_LOWER_FRETS = 47,
-
-    BUF_STICK_X     = 1,
-    BUF_STICK_Y     = 2,
+    BUF_STICK_X = 1,
+    BUF_STICK_Y = 2,
 
     BUF_DPAD        = 5,
     BUF_SYSTEM_BTNS = 6,
     BUF_PS_BTN      = 7,
+
+    BUF_WHAMMY      = 44,
+    BUF_TILT        = 45,
+    BUF_FRETS       = 46,
+    BUF_LOWER_FRETS = 47,
 };
 
 //
