@@ -13,8 +13,7 @@
 //
 
 #include <windows.h>
-#include <thread>
-#include <bitset>
+#include <cstdio>
 
 #include <hidapi.h>
 #include <ViGEm/Client.h>
@@ -117,7 +116,7 @@ static BOOL WINAPI signal_handler(DWORD signal)
 
         while (!l_CleanedUp)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+            Sleep(250);
         }
     }
 
@@ -149,7 +148,7 @@ static hid_device* find_device(void)
         }
 
         // while we're waiting, dont waste too many cycles
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        Sleep(250);
     }
 
     return device;
