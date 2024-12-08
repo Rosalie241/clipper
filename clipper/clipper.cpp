@@ -163,7 +163,7 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
     while (l_Running)
     {
         ret = hid_read(device, buffer, sizeof(buffer));
-        if (ret == -1 || ret != sizeof(buffer))
+        if (ret != sizeof(buffer))
         {
             puts("[WARNING] Failed to read packets, device disconnected?");
             break;
@@ -174,13 +174,13 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
         // lower frets buffer matches the frets buffer
         buffer[BUF_FRETS] |= buffer[BUF_LOWER_FRETS];
 
-        virtual_report.wButtons = ((buffer[BUF_FRETS] & BTN_MASK_FRET_1)     << (8 - 0))  |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_2_3_4) << (12 - 1)) |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_5)     << (9 - 4))  |
-                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_STICK))          |
-                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_START)  >> (1))  |
-                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_SELECT) << (1))  |
-                                  ((buffer[BUF_PS_BTN] & BTN_MASK_HOME) << (10)) |
+        virtual_report.wButtons = ((buffer[BUF_FRETS] & BTN_MASK_FRET_1)     << 8)  |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_2_3_4) << 11) |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_5)     << 5)  |
+                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_STICK))       |
+                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_START)  >> 1) |
+                                  ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_SELECT) << 1) |
+                                  ((buffer[BUF_PS_BTN] & BTN_MASK_HOME) << 10) |
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_UP))         |
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_DOWN)  << 1) |
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_LEFT)  << 2) |
