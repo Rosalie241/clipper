@@ -7,7 +7,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef _WIN32
 #include <windows.h>
+#endif
+
+#include <cstdint>
 
 #include "guitar.hpp"
 #include "clipper.hpp"
@@ -113,11 +117,11 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
     int ret;
     unsigned char buffer[64];
     XUSB_REPORT virtual_report = { 0 };
-    const BYTE pickup_values[] =
+    const uint8_t pickup_values[] =
     {
         0xE0, 0xAB, 0x79, 0x4B, 0x17
     };
-    const BYTE dpad_values[]
+    const uint8_t dpad_values[]
     {
         0x1, 0x9, 0x8, 0xA,
         0x2, 0x6, 0x4, 0x5,
@@ -126,7 +130,7 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
         0x0, 0x0, 0x0, 0x0
     };
     const double tilt_sensitivity = configuration.TiltSensitivity / 100.0;
-    const SHORT tilt_deadzone = static_cast<SHORT>(MAXSHORT * (configuration.TiltDeadZone / 100.0));
+    const int16_t tilt_deadzone = static_cast<int16_t>(INT16_MAX * (configuration.TiltDeadZone / 100.0));
 
     PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
     if (gamepad == nullptr)
@@ -179,9 +183,9 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
         virtual_report.sThumbRX = ((buffer[BUF_WHAMMY] * 255) - 32767);
 
         // account for deadzone
-        const SHORT tilt_value = static_cast<SHORT>(min((buffer[BUF_TILT] * (128 * tilt_sensitivity)), MAXSHORT));
+        const int16_t tilt_value = static_cast<int16_t>(std::min((int)(buffer[BUF_TILT] * (128 * tilt_sensitivity)), INT16_MAX));
         virtual_report.sThumbRY = (tilt_value < tilt_deadzone ? 0 : tilt_value);
-
+    
         virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
         virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
 

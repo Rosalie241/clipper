@@ -12,8 +12,14 @@
 // Includes
 //
 
+#ifdef _WIN32
 #include <windows.h>
 #include <hidusage.h>
+#else
+#define Sleep(x) std::this_thread::sleep_for(std::chrono::milliseconds(x))
+#include <signal.h>
+#include <stdarg.h>
+#endif
 
 #include <filesystem>
 #include <algorithm>
@@ -67,6 +73,7 @@ static void show_error(const char* fmt, ...)
     (void)getchar();
 }
 
+#ifdef _WIN32
 static BOOL WINAPI signal_handler(DWORD signal)
 {
     if (signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT)
@@ -81,15 +88,23 @@ static BOOL WINAPI signal_handler(DWORD signal)
 
     return TRUE;
 }
+#else // Linux
+static void signal_handler(int signal)
+{
+    IsRunning = false;
+}
+#endif
 
 static bool is_valid_device(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType, bool& hasPickupSwitch)
 {
+#ifdef _WIN32
     // Thank you @TheNathannator for helping me with this
     if (deviceInfo->usage_page != HID_USAGE_PAGE_GENERIC ||
         deviceInfo->usage != HID_USAGE_GENERIC_GAMEPAD)
     {
         return false;
     }
+#endif
 
     return IsValidGuitar(deviceInfo, deviceName, deviceType, hasPickupSwitch) ||
            IsValidDrum(deviceInfo, deviceName, deviceType);
@@ -160,7 +175,12 @@ static bool write_default_config_file()
         "TiltDeadZone = 20\n";
 
     FILE* configFile = nullptr;
+#ifdef _WIN32
     errno_t err = fopen_s(&configFile, "clipper.ini", "w+");
+#else
+    int err = 0;
+    configFile = fopen("clipper.ini", "w+");
+#endif
     if (err != 0 || configFile == nullptr)
     {
         show_error("[ERROR] Failed to create clipper.ini!");
@@ -203,12 +223,17 @@ void RemoveDevice(const std::string& devicePath, hid_device* device)
 
 int main()
 {
+#ifdef _WIN32
     // set console handler
     if (!SetConsoleCtrlHandler(signal_handler, TRUE))
     {
         show_error("[ERROR] Failed to set console handler!");
         return 1;
     }
+#else // Linux
+    signal(SIGINT,  signal_handler);
+    signal(SIGTERM, signal_handler);
+#endif // _WIN32
 
     // initialize configuration file
     if (!std::filesystem::is_regular_file("clipper.ini"))
