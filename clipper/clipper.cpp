@@ -12,8 +12,19 @@
 // Includes
 //
 
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <thread>
+#define Sleep(x) std::this_thread::sleep_for(std::chrono::milliseconds(x))
+#include <signal.h>
+
+
+#endif
 #include <cstdio>
+
+#define min(x, y) (x) < (y) ? (x) : (y)
+
 
 #include <hidapi.h>
 #include <ViGEm/Client.h>
@@ -105,6 +116,7 @@ static void show_error(const char* error)
     (void)getchar();
 }
 
+#ifdef _WIN32
 static BOOL WINAPI signal_handler(DWORD signal)
 {
     if (signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT)
@@ -119,6 +131,12 @@ static BOOL WINAPI signal_handler(DWORD signal)
 
     return TRUE;
 }
+#else // Linux
+static void signal_handler(int signal)
+{
+    l_Running = false;
+}
+#endif
 
 static hid_device* find_device(void)
 {
@@ -193,12 +211,17 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
 
 int main()
 {
+#ifdef _WIN32
     // set console handler
     if (!SetConsoleCtrlHandler(signal_handler, TRUE))
     {
         show_error("[ERROR] Failed to set console handler!");
         return 1;
     }
+#else // Linux
+    signal(SIGINT,  signal_handler);
+    signal(SIGTERM, signal_handler);
+#endif // _WIN32
 
     // initialize ViGEm
     PVIGEM_CLIENT client = vigem_alloc();
