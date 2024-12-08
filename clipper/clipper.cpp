@@ -177,8 +177,8 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_LEFT)  << 2) |
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_RIGHT) << 3);
 
-        virtual_report.bLeftTrigger  = buffer[BUF_WHAMMY]; // whammy
-        virtual_report.bRightTrigger = min((int)(buffer[BUF_TILT] * 1.3f), 255); // tilt
+        virtual_report.bLeftTrigger  = buffer[BUF_WHAMMY];
+        virtual_report.bRightTrigger = min((int)(buffer[BUF_TILT] * 1.3f), 255);
 
         virtual_report.sThumbLX = buffer[BUF_STICK_X];
         virtual_report.sThumbLY = buffer[BUF_STICK_Y];
