@@ -80,7 +80,7 @@ struct GuitarDevice
 {
     int VendorId  = 0;
     int ProductId = 0;
-    const char ProductName[22] = { 0 };
+    const char ProductName[24] = { 0 };
 };
 
 //
@@ -126,7 +126,6 @@ static BOOL WINAPI signal_handler(DWORD signal)
 static hid_device* find_device(void)
 {
     hid_device* device = nullptr;
-    bool deviceFound = false;
 
     puts("[INFO] Waiting for device...");
 
@@ -138,20 +137,15 @@ static hid_device* find_device(void)
             if (device != nullptr)
             {
                 printf("[INFO] Device found: %s, polling input...\n", guitarDevice.ProductName);
-                deviceFound = true;
-                break;
+                return device;
             }
-        }
-        if (deviceFound)
-        {
-            break;
         }
 
         // while we're waiting, dont waste too many cycles
         Sleep(250);
     }
 
-    return device;
+    return nullptr;
 }
 
 static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET gamepad)
