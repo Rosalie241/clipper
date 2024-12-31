@@ -165,9 +165,11 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
         // lower frets buffer matches the frets buffer
         buffer[BUF_FRETS] |= buffer[BUF_LOWER_FRETS];
 
-        virtual_report.wButtons = ((buffer[BUF_FRETS] & BTN_MASK_FRET_1)     << 8)  |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_2_3_4) << 11) |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_5)     << 5)  |
+        virtual_report.wButtons = ((buffer[BUF_FRETS] & BTN_MASK_FRET_1)     << 12)  |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_2) << 12)      |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_3) << 13)      |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_4) << 11)      |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_5)     << 4)  |
                                   ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_STICK))       |
                                   ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_START)  >> 1) |
                                   ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_SELECT) << 1) |
@@ -177,11 +179,11 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_LEFT)  << 2) |
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_RIGHT) << 3);
 
-        virtual_report.bLeftTrigger  = buffer[BUF_WHAMMY];
-        virtual_report.bRightTrigger = min((int)(buffer[BUF_TILT] * 1.3f), 255);
+        virtual_report.sThumbRX = ((buffer[BUF_WHAMMY] * 255) - 32767);
+        virtual_report.sThumbRY = min((buffer[BUF_TILT] * (128 * 1.3)), 32767);
 
-        virtual_report.sThumbLX = buffer[BUF_STICK_X];
-        virtual_report.sThumbLY = buffer[BUF_STICK_Y];
+        virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
+        virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
 
         vigem_target_x360_update(client, gamepad, virtual_report);
     }
