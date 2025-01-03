@@ -160,16 +160,16 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
             break;
         }
 
-        // we only care about the last 3 bits for the dpad
-        buffer[BUF_DPAD] &= 0b00000111;
+        // we only care about the last 4 bits for the dpad
+        buffer[BUF_DPAD] &= 0b00001111;
         // lower frets buffer matches the frets buffer
         buffer[BUF_FRETS] |= buffer[BUF_LOWER_FRETS];
 
-        virtual_report.wButtons = ((buffer[BUF_FRETS] & BTN_MASK_FRET_1)     << 12)  |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_2) << 12)      |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_3) << 13)      |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_4) << 11)      |
-                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_5)     << 4)  |
+        virtual_report.wButtons = ((buffer[BUF_FRETS] & BTN_MASK_FRET_1) << 12) |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_2) << 12) |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_3) << 13) |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_4) << 11) |
+                                  ((buffer[BUF_FRETS] & BTN_MASK_FRET_5) << 4)  |
                                   ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_STICK))       |
                                   ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_START)  >> 1) |
                                   ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_SELECT) << 1) |
