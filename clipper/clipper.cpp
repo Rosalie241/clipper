@@ -62,6 +62,7 @@ enum
     BUF_SYSTEM_BTNS = 6,
     BUF_PS_BTN      = 7,
 
+    BUF_PICKUP      = 43,
     BUF_WHAMMY      = 44,
     BUF_TILT        = 45,
     BUF_FRETS       = 46,
@@ -77,6 +78,13 @@ struct GuitarDevice
     int VendorId  = 0;
     int ProductId = 0;
     const char ProductName[24] = { 0 };
+    bool HasPickupSwitch = false;
+};
+
+struct GuitarDeviceHandle
+{
+    hid_device* HidDevice = nullptr;
+    bool HasPickupSwitch  = false;
 };
 
 //
@@ -87,9 +95,9 @@ static bool l_Running = true;
 static bool l_CleanedUp = false;
 static GuitarDevice l_SupportedDevices[] =
 {
-    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster"},
-    {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , "PDP Jaguar"},
-    {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, "MadCatz Stratocaster"}
+    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster"      , false},
+    {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , "PDP Jaguar"          , false},
+    {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, "MadCatz Stratocaster", true}
 };
 
 //
@@ -119,9 +127,9 @@ static BOOL WINAPI signal_handler(DWORD signal)
     return TRUE;
 }
 
-static hid_device* find_device(void)
+static GuitarDeviceHandle find_device(void)
 {
-    hid_device* device = nullptr;
+    GuitarDeviceHandle handle;
 
     puts("[INFO] Waiting for device...");
 
@@ -129,11 +137,12 @@ static hid_device* find_device(void)
     {
         for (const GuitarDevice& guitarDevice : l_SupportedDevices)
         {
-            device = hid_open(guitarDevice.VendorId, guitarDevice.ProductId, nullptr);
-            if (device != nullptr)
+            handle.HidDevice = hid_open(guitarDevice.VendorId, guitarDevice.ProductId, nullptr);
+            if (handle.HidDevice != nullptr)
             {
                 printf("[INFO] Device found: %s, polling input...\n", guitarDevice.ProductName);
-                return device;
+                handle.HasPickupSwitch = guitarDevice.HasPickupSwitch;
+                return handle;
             }
         }
 
@@ -141,18 +150,22 @@ static hid_device* find_device(void)
         Sleep(250);
     }
 
-    return nullptr;
+    return handle;
 }
 
-static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET gamepad)
+static void poll_input(GuitarDeviceHandle deviceHandle, PVIGEM_CLIENT client, PVIGEM_TARGET gamepad)
 {
     int ret;
     unsigned char buffer[64];
     XUSB_REPORT virtual_report = { 0 };
+    const BYTE pickup_values[] =
+    {
+        0x17, 0x4B, 0x79, 0xAB, 0xE0
+    };
 
     while (l_Running)
     {
-        ret = hid_read(device, buffer, sizeof(buffer));
+        ret = hid_read(deviceHandle.HidDevice, buffer, sizeof(buffer));
         if (ret != sizeof(buffer))
         {
             puts("[WARNING] Failed to read packets, device disconnected?");
@@ -183,6 +196,11 @@ static void poll_input(hid_device* device, PVIGEM_CLIENT client, PVIGEM_TARGET g
 
         virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
         virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
+
+        if (deviceHandle.HasPickupSwitch)
+        {
+            virtual_report.bLeftTrigger = pickup_values[(buffer[BUF_PICKUP])];
+        }
 
         vigem_target_x360_update(client, gamepad, virtual_report);
     }
@@ -235,7 +253,7 @@ int main()
     }
 
     // initialize libhidapi
-    hid_device* device = nullptr;
+    GuitarDeviceHandle deviceHandle;
     int hid_ret = hid_init();
     if (hid_ret < 0)
     {
@@ -248,10 +266,10 @@ int main()
 
     while (l_Running)
     {
-        device = find_device();
-        if (device != nullptr)
+        deviceHandle = find_device();
+        if (deviceHandle.HidDevice != nullptr)
         {
-            poll_input(device, client, gamepad);
+            poll_input(deviceHandle, client, gamepad);
         }
     }
 
@@ -261,7 +279,7 @@ int main()
     vigem_target_free(gamepad);
     vigem_free(client);
 
-    hid_close(device);
+    hid_close(deviceHandle.HidDevice);
     hid_exit();
 
     // needed for signal handler
