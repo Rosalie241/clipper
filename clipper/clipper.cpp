@@ -161,6 +161,8 @@ static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, P
         0xE0, 0xAB, 0x79, 0x4B, 0x17
     };
 
+    unsigned char tilt_value = 0;
+
     while (l_Running)
     {
         ret = hid_read(deviceHandle.HidDevice, buffer, sizeof(buffer));
@@ -194,6 +196,12 @@ static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, P
 
         virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
         virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
+
+        if (tilt_value != buffer[BUF_TILT])
+        {
+            printf("[INFO] tilt value: %i\n", buffer[BUF_TILT]);
+            tilt_value = buffer[BUF_TILT];
+        }
 
         if (deviceHandle.HasPickupSwitch)
         {
