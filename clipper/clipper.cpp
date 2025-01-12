@@ -166,7 +166,7 @@ static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, P
         ret = hid_read(deviceHandle.HidDevice, buffer, sizeof(buffer));
         if (ret != sizeof(buffer))
         {
-            puts("[WARNING] Failed to read packets, device disconnected?");
+            wprintf(L"[WARNING] Failed to read packets: %ls\n", hid_error(deviceHandle.HidDevice));
             break;
         }
 
