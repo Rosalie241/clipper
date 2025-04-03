@@ -190,7 +190,10 @@ static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, P
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_RIGHT) << 3);
 
         virtual_report.sThumbRX = ((buffer[BUF_WHAMMY] * 255) - 32767);
-        virtual_report.sThumbRY = min((buffer[BUF_TILT] * (128 * 1.3)), 32767);
+        if (min((buffer[BUF_TILT] * (128 * 1.3)), 32767) < 16384)
+            virtual_report.sThumbRY = 0;
+        else
+            virtual_report.sThumbRY = min((buffer[BUF_TILT] * (128 * 1.3)), 32767);
 
         virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
         virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
