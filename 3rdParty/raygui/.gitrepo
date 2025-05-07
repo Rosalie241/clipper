@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:raysan5/raygui.git
+	branch = 4.0
+	commit = 25c8c65a6e5f0f4d4b564a0343861898c6f2778b
+	parent = ce3b5b0cb7ed2aa608e5b66229ff2b29b3d7762e
+	method = merge
+	cmdver = 0.4.9
