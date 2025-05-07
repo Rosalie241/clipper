@@ -12,11 +12,31 @@
 // Includes
 //
 
+#define Rectangle Win32Rectangle
+#define CloseWindow Win32CloseWindow
+#define ShowCursor Win32ShowCursor
+#define LoadImageW Win32LoadImageW
+#define DrawTextW Win32DrawTextW
+#define DrawTextExW Win32DrawTextExW
+#define PlaySoundW Win32PlaySoundW
 #include <windows.h>
+#undef Rectangle
+#undef CloseWindow
+#undef ShowCursor
+#undef LoadImageW
+#undef DrawTextW
+#undef DrawTextExW
+#undef PlaySoundW
+
 #include <cstdio>
 
 #include <hidapi.h>
 #include <ViGEm/Client.h>
+
+#define RAYGUI_IMPLEMENTATION
+#include <raylib.h>
+#include <raygui.h>
+#include <style_dark.h>
 
 //
 // Local Enums
@@ -210,6 +230,51 @@ static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, P
 
 int main()
 {
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
+
+    InitWindow(640, 480, "clipper");
+    SetTargetFPS(60);
+
+    GuiLoadStyleDark();
+
+    bool showMessageBox = false;
+    float a = 1.3;
+    float sensitivityValue = 1.3f;
+   
+
+    while (!WindowShouldClose())
+    {
+        BeginDrawing();
+        ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
+
+        GuiLabel({ 20, 10, 120, 24 }, "Tilt Sensitivity:");
+        GuiSlider({ 20, 34, 120, 16 }, NULL, NULL, &sensitivityValue, 0.5, 2.0);
+
+        GuiLabel({ 20, 50, 120, 24 }, "Tilt Deadzone:");
+        GuiSlider({ 20, 74, 120, 16 }, NULL, NULL, NULL, 0, 100);
+        
+        GuiLabel({ 20, 90, 120, 24 }, "Current Tilt:");
+        GuiSlider({ 20, 114, 120, 16 }, NULL, NULL, NULL, 0, 100);
+
+        GuiButton({ 20, 114 + 22, 120, 24 }, "Save");
+        GuiButton({ 20, 114 + 22 + 26, 120, 24 }, "Reset");
+       // GuiSlider({ 150, 0, 100, 30 }, "Tilt Sensitivity:", "", &a, 0.5, 3.0);
+
+        //if (GuiButton({ 24.0f, 24.0f, 120.0f, 30.0f }, "#191#Show Message")) showMessageBox = true;
+
+        if (showMessageBox)
+        {
+            int result = GuiMessageBox({ 85, 70, 250, 100 },
+                "#191#Message Box", "Hi! This is a message!", "Nice;Cool");
+
+            if (result >= 0) showMessageBox = false;
+        }
+
+        EndDrawing();
+    }
+
+    CloseWindow();
+
     // set console handler
     if (!SetConsoleCtrlHandler(signal_handler, TRUE))
     {
