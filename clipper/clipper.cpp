@@ -13,7 +13,14 @@
 //
 
 #include <windows.h>
+#include <hidusage.h>
+
+#include <algorithm>
 #include <cstdio>
+#include <string>
+#include <thread>
+#include <vector>
+#include <mutex>
 
 #include <hidapi.h>
 #include <ViGEm/Client.h>
@@ -77,14 +84,7 @@ struct GuitarDevice
 {
     int VendorId  = 0;
     int ProductId = 0;
-    const char ProductName[24] = { 0 };
     bool HasPickupSwitch = false;
-};
-
-struct GuitarDeviceHandle
-{
-    hid_device* HidDevice = nullptr;
-    bool HasPickupSwitch  = false;
 };
 
 //
@@ -95,10 +95,16 @@ static bool l_Running = true;
 static bool l_CleanedUp = false;
 static GuitarDevice l_SupportedDevices[] =
 {
-    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster"      , false},
-    {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , "PDP Jaguar"          , false},
-    {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, "MadCatz Stratocaster", true}
+    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , false},
+    {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , false},
+    {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, true}
 };
+
+static std::mutex l_OpenedDevicesMutex;
+static std::vector<std::string> l_OpenedDevices;
+static std::mutex l_ClosedDevicesMutex;
+static std::vector<hid_device*> l_ClosedDevices;
+static std::vector<std::thread> l_PollThreads;
 
 //
 // Local Functions
@@ -127,31 +133,7 @@ static BOOL WINAPI signal_handler(DWORD signal)
     return TRUE;
 }
 
-static bool find_device(GuitarDeviceHandle& deviceHandle)
-{
-    puts("[INFO] Waiting for device...");
-
-    while (l_Running)
-    {
-        for (const GuitarDevice& guitarDevice : l_SupportedDevices)
-        {
-            deviceHandle.HidDevice = hid_open(guitarDevice.VendorId, guitarDevice.ProductId, nullptr);
-            if (deviceHandle.HidDevice != nullptr)
-            {
-                printf("[INFO] Device found: %s, polling input...\n", guitarDevice.ProductName);
-                deviceHandle.HasPickupSwitch = guitarDevice.HasPickupSwitch;
-                return true;
-            }
-        }
-
-        // while we're waiting, dont waste too many cycles
-        Sleep(250);
-    }
-
-    return false;
-}
-
-static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, PVIGEM_TARGET gamepad)
+static void poll_input_thread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, bool hasPickupSwitch)
 {
     int ret;
     unsigned char buffer[64];
@@ -161,12 +143,28 @@ static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, P
         0xE0, 0xAB, 0x79, 0x4B, 0x17
     };
 
+    PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
+    if (gamepad == nullptr)
+    {
+        show_error("[ERROR] Failed to allocate virtual gamepad!");
+        vigem_free(client);
+        return;
+    }
+
+    VIGEM_ERROR vigem_ret = vigem_target_add(client, gamepad);
+    if (vigem_ret != VIGEM_ERROR_NONE)
+    {
+        show_error("[ERROR] Failed to add virtual gamepad to ViGEm!");
+        vigem_target_free(gamepad);
+        return;
+    }
+
     while (l_Running)
     {
-        ret = hid_read(deviceHandle.HidDevice, buffer, sizeof(buffer));
+        ret = hid_read(device, buffer, sizeof(buffer));
         if (ret != sizeof(buffer))
         {
-            wprintf(L"[WARNING] Failed to read packets: %ls\n", hid_error(deviceHandle.HidDevice));
+            printf("[ERROR] Failed to read packets for %s!\n", devicePath.c_str());
             break;
         }
 
@@ -190,18 +188,93 @@ static void poll_input(GuitarDeviceHandle& deviceHandle, PVIGEM_CLIENT client, P
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_RIGHT) << 3);
 
         virtual_report.sThumbRX = ((buffer[BUF_WHAMMY] * 255) - 32767);
-        virtual_report.sThumbRY = min((buffer[BUF_TILT] * (128 * 1.3)), 32767);
+        virtual_report.sThumbRY = min((SHORT)(buffer[BUF_TILT] * (128 * 1.3)), 32767);
 
         virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
         virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
 
-        if (deviceHandle.HasPickupSwitch)
+        if (hasPickupSwitch)
         {
             virtual_report.bLeftTrigger = pickup_values[(buffer[BUF_PICKUP])];
         }
 
         vigem_target_x360_update(client, gamepad, virtual_report);
     }
+
+    // remove allocated devices on thread exit
+    vigem_target_remove(client, gamepad);
+    vigem_target_free(gamepad);
+
+    // remove device from opened devices list
+    l_OpenedDevicesMutex.lock();
+    const auto iter = std::find(l_OpenedDevices.begin(), l_OpenedDevices.end(), devicePath);
+    if (iter != l_OpenedDevices.end())
+    {
+        l_OpenedDevices.erase(iter);
+    }
+    l_OpenedDevicesMutex.unlock();
+
+    l_ClosedDevicesMutex.lock();
+    l_ClosedDevices.push_back(device);
+    l_ClosedDevicesMutex.unlock();
+}
+
+static bool is_valid_device(hid_device_info* deviceInfo, bool& hasPickupSwitch)
+{
+    // Thank you @TheNathannator for helping me with this
+    if (deviceInfo->usage_page != HID_USAGE_PAGE_GENERIC ||
+        deviceInfo->usage != HID_USAGE_GENERIC_GAMEPAD)
+    {
+        return false;
+    }
+
+    for (const GuitarDevice& guitarDevice : l_SupportedDevices)
+    {
+        if (deviceInfo->product_id == guitarDevice.ProductId &&
+            deviceInfo->vendor_id == guitarDevice.VendorId)
+        {
+            hasPickupSwitch = guitarDevice.HasPickupSwitch;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool has_device_open(hid_device_info* deviceInfo)
+{
+    const std::lock_guard<std::mutex> lock(l_OpenedDevicesMutex);
+    return std::find(l_OpenedDevices.begin(), l_OpenedDevices.end(), deviceInfo->path) != l_OpenedDevices.end();
+}
+
+static hid_device* open_device(hid_device_info* deviceInfo)
+{
+    const std::lock_guard<std::mutex> lock(l_OpenedDevicesMutex);
+    hid_device* device = hid_open_path(deviceInfo->path);
+    if (device == nullptr)
+    {
+        wprintf(L"[WARNING] Failed to open device: %ls\n", hid_error(device));
+    }
+    else
+    {
+        l_OpenedDevices.push_back(deviceInfo->path);
+    }
+    return device;
+}
+
+static void close_devices()
+{
+    const std::lock_guard<std::mutex> lock(l_ClosedDevicesMutex);
+    for (const auto& device : l_ClosedDevices)
+    {
+        hid_close(device);
+    }
+    l_ClosedDevices.clear();
+}
+
+static void launch_poll_thread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, bool hasPickupSwitch)
+{
+    l_PollThreads.push_back(std::thread(poll_input_thread, client, device, devicePath, hasPickupSwitch));
 }
 
 //
@@ -233,50 +306,62 @@ int main()
         return 1;
     }
 
-    PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
-    if (gamepad == nullptr)
-    {
-        show_error("[ERROR] Failed to allocate virtual gamepad!");
-        vigem_free(client);
-        return 1;
-    }
-
-    vigem_ret = vigem_target_add(client, gamepad);
-    if (vigem_ret != VIGEM_ERROR_NONE)
-    {
-        show_error("[ERROR] Failed to add virtual gamepad to ViGEm!");
-        vigem_target_free(gamepad);
-        vigem_free(client);
-        return 1;
-    }
-
     // initialize libhidapi
     int hid_ret = hid_init();
     if (hid_ret < 0)
     {
         show_error("[ERROR] Failed to initialize libhidapi!");
-        vigem_target_remove(client, gamepad);
-        vigem_target_free(gamepad);
         vigem_free(client);
         return 1;
     }
 
-    GuitarDeviceHandle deviceHandle;
     while (l_Running)
     {
-        if (find_device(deviceHandle))
+        hid_device_info* devices = hid_enumerate(0, 0);
+        hid_device_info* deviceInfo = devices;
+        bool hasPickupSwitch = false;
+
+        while (deviceInfo->next)
         {
-            poll_input(deviceHandle, client, gamepad);
+            if (is_valid_device(deviceInfo, hasPickupSwitch) &&
+                !has_device_open(deviceInfo))
+            {   
+                printf("[INFO] Found device: %ls at %s\n", deviceInfo->product_string, deviceInfo->path);
+
+                hid_device* hidDevice = open_device(deviceInfo);
+                if (hidDevice != nullptr)
+                {
+                    printf("[INFO] Opened device: %ls, starting poll thread...\n", deviceInfo->product_string);
+                    launch_poll_thread(client, hidDevice, deviceInfo->path, hasPickupSwitch);
+                }
+            }
+
+            deviceInfo = deviceInfo->next;
         }
+
+        // close devices for threads that
+        // are no longer running
+        close_devices();
+
+        hid_free_enumeration(devices);
+
+        Sleep(2000);
     }
 
     puts("[INFO] Shutting down...");
 
-    vigem_target_remove(client, gamepad);
-    vigem_target_free(gamepad);
+    // wait for all threads to finish executing
+    for (auto& pollThread : l_PollThreads)
+    {
+        if (pollThread.joinable())
+        {
+            pollThread.join();
+        }
+    }
     vigem_free(client);
 
-    hid_close(deviceHandle.HidDevice);
+    // close remaining devices
+    close_devices();
     hid_exit();
 
     // needed for signal handler
