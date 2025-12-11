@@ -4,3 +4,6 @@
 [submodule "3rdParty/ViGEmClient"]
 	path = 3rdParty/ViGEmClient
 	url = git@github.com:nefarius/ViGEmClient.git
+[submodule "3rdParty/inih"]
+	path = 3rdParty/inih
+	url = git@github.com:benhoyt/inih.git
