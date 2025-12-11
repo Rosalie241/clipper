@@ -8,6 +8,7 @@ It's a rewrite of [dipper](https://github.com/Najatski/dipper) in C/C++ for bett
 
 * PDP Riffmaster (PS4)
 * PDP Jaguar (PS4)
+* PDP Drum Set (PS4)
 * MadCatz Stratocaster (PS4)
 * MadCatz Drum Set (PS4)
 
