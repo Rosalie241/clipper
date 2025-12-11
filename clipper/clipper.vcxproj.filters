@@ -27,5 +27,11 @@
     <ClCompile Include="..\3rdParty\ViGEmClient\src\ViGEmClient.cpp">
       <Filter>Source Files\3rdParty</Filter>
     </ClCompile>
+    <ClCompile Include="..\3rdParty\inih\ini.c">
+      <Filter>Source Files\3rdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rdParty\inih\cpp\INIReader.cpp">
+      <Filter>Source Files\3rdParty</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

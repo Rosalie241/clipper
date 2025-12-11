@@ -86,7 +86,7 @@
     <OutDir>$(MSBuildProjectDirectory)\Bin\\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\3rdParty\ViGEmClient\include;..\3rdParty\hidapi\hidapi;$(IncludePath)</IncludePath>
+    <IncludePath>..\3rdParty\ViGEmClient\include;..\3rdParty\hidapi\hidapi;..\3rdParty\inih\cpp;$(IncludePath)</IncludePath>
     <IntDir>$(MSBuildProjectDirectory)\Obj\\$(Configuration)\</IntDir>
     <OutDir>$(MSBuildProjectDirectory)\Bin\\$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -111,6 +111,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;HIDAPI_USE_DDK;HID_API_NO_EXPORT_DEFINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,6 +154,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\3rdParty\hidapi\windows\hid.c" />
+    <ClCompile Include="..\3rdParty\inih\cpp\INIReader.cpp" />
+    <ClCompile Include="..\3rdParty\inih\ini.c" />
     <ClCompile Include="..\3rdParty\ViGEmClient\src\ViGEmClient.cpp" />
     <ClCompile Include="clipper.cpp" />
   </ItemGroup>

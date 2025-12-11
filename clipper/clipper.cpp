@@ -15,15 +15,19 @@
 #include <windows.h>
 #include <hidusage.h>
 
+#include <filesystem>
 #include <algorithm>
+#include <cstring>
 #include <cstdio>
 #include <string>
 #include <thread>
 #include <vector>
 #include <mutex>
 
-#include <hidapi.h>
 #include <ViGEm/Client.h>
+#include <INIReader.h>
+#include <hidapi.h>
+
 
 //
 // Local Enums
@@ -84,6 +88,14 @@ struct GuitarDevice
 {
     int VendorId  = 0;
     int ProductId = 0;
+    std::string ProductName;
+    bool HasPickupSwitch = false;
+};
+
+struct GuitarDeviceConfiguration
+{
+    int TiltSensitivity  = 0;
+    int TiltDeadZone     = 0;
     bool HasPickupSwitch = false;
 };
 
@@ -95,9 +107,9 @@ static bool l_Running = true;
 static bool l_CleanedUp = false;
 static GuitarDevice l_SupportedDevices[] =
 {
-    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , false},
-    {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , false},
-    {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, true}
+    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster"      , false},
+    {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , "PDP Jaguar"          , false},
+    {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, "MadCatz Stratocaster", true}
 };
 
 static std::mutex l_OpenedDevicesMutex;
@@ -110,8 +122,14 @@ static std::vector<std::thread> l_PollThreads;
 // Local Functions
 //
 
-static void show_error(const char* error)
+static void show_error(const char* fmt, ...)
 {
+    char error[256] = { 0 };
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(error, sizeof(error), fmt, args);
+    va_end(args);
+
     puts(error);
 
     puts("Press a key to continue...");
@@ -133,7 +151,7 @@ static BOOL WINAPI signal_handler(DWORD signal)
     return TRUE;
 }
 
-static void poll_input_thread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, bool hasPickupSwitch)
+static void poll_input_thread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, GuitarDeviceConfiguration configuration)
 {
     int ret;
     unsigned char buffer[64];
@@ -142,11 +160,16 @@ static void poll_input_thread(PVIGEM_CLIENT client, hid_device* device, std::str
     {
         0xE0, 0xAB, 0x79, 0x4B, 0x17
     };
+    const double tiltSensitivity = configuration.TiltSensitivity / 100.0;
+    const SHORT tiltDeadZone = static_cast<SHORT>(MAXSHORT * (configuration.TiltDeadZone / 100.0));
 
     PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
     if (gamepad == nullptr)
     {
-        show_error("[ERROR] Failed to allocate virtual gamepad!");
+        puts("[ERROR] Failed to allocate virtual gamepad!");
+        l_ClosedDevicesMutex.lock();
+        l_ClosedDevices.push_back(device);
+        l_ClosedDevicesMutex.unlock();
         vigem_free(client);
         return;
     }
@@ -154,7 +177,10 @@ static void poll_input_thread(PVIGEM_CLIENT client, hid_device* device, std::str
     VIGEM_ERROR vigem_ret = vigem_target_add(client, gamepad);
     if (vigem_ret != VIGEM_ERROR_NONE)
     {
-        show_error("[ERROR] Failed to add virtual gamepad to ViGEm!");
+        puts("[ERROR] Failed to add virtual gamepad to ViGEm!");
+        l_ClosedDevicesMutex.lock();
+        l_ClosedDevices.push_back(device);
+        l_ClosedDevicesMutex.unlock();
         vigem_target_free(gamepad);
         return;
     }
@@ -188,12 +214,15 @@ static void poll_input_thread(PVIGEM_CLIENT client, hid_device* device, std::str
                                   ((buffer[BUF_DPAD] == BTN_MASK_DPAD_RIGHT) << 3);
 
         virtual_report.sThumbRX = ((buffer[BUF_WHAMMY] * 255) - 32767);
-        virtual_report.sThumbRY = min((SHORT)(buffer[BUF_TILT] * (128 * 1.3)), 32767);
+
+        // account for deadzone
+        const SHORT tiltValue = static_cast<SHORT>(min((buffer[BUF_TILT] * (128 * tiltSensitivity)), MAXSHORT));
+        virtual_report.sThumbRY = (tiltValue < tiltDeadZone ? 0 : tiltValue);
 
         virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
         virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
 
-        if (hasPickupSwitch)
+        if (configuration.HasPickupSwitch)
         {
             virtual_report.bLeftTrigger = pickup_values[(buffer[BUF_PICKUP])];
         }
@@ -219,7 +248,7 @@ static void poll_input_thread(PVIGEM_CLIENT client, hid_device* device, std::str
     l_ClosedDevicesMutex.unlock();
 }
 
-static bool is_valid_device(hid_device_info* deviceInfo, bool& hasPickupSwitch)
+static bool is_valid_device(hid_device_info* deviceInfo, std::string& deviceName, bool& hasPickupSwitch)
 {
     // Thank you @TheNathannator for helping me with this
     if (deviceInfo->usage_page != HID_USAGE_PAGE_GENERIC ||
@@ -234,6 +263,7 @@ static bool is_valid_device(hid_device_info* deviceInfo, bool& hasPickupSwitch)
             deviceInfo->vendor_id == guitarDevice.VendorId)
         {
             hasPickupSwitch = guitarDevice.HasPickupSwitch;
+            deviceName = guitarDevice.ProductName;
             return true;
         }
     }
@@ -272,9 +302,50 @@ static void close_devices()
     l_ClosedDevices.clear();
 }
 
-static void launch_poll_thread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, bool hasPickupSwitch)
+static void launch_poll_thread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, GuitarDeviceConfiguration configuration)
 {
-    l_PollThreads.push_back(std::thread(poll_input_thread, client, device, devicePath, hasPickupSwitch));
+    l_PollThreads.push_back(std::thread(poll_input_thread, client, device, devicePath, configuration));
+}
+
+static bool write_default_config_file()
+{
+    static const char defaultConfiguration[] =
+        ";\n"
+        "; clipper - https://github.com/Rosalie241/clipper\n"
+        ";\n"
+        "[PDP Riffmaster]\n"
+        "TiltSensitivity = 130\n"
+        "TiltDeadZone = 20\n"
+        "\n"
+        "[PDP Jaguar]\n"
+        "TiltSensitivity = 130\n"
+        "TiltDeadZone = 20\n"
+        "\n"
+        "[MadCatz Stratocaster]\n"
+        "TiltSensitivity = 130\n"
+        "TiltDeadZone = 20\n";
+
+    FILE* configFile = nullptr;
+    errno_t err = fopen_s(&configFile, "clipper.ini", "w+");
+    if (err != 0 || configFile == nullptr)
+    {
+        show_error("[ERROR] Failed to create clipper.ini!");
+        return false;
+    }
+
+    puts("[INFO] Created clipper.ini with the default configuration");
+    fwrite(defaultConfiguration, strlen(defaultConfiguration), 1, configFile);
+    fclose(configFile);
+    return true;
+}
+
+static GuitarDeviceConfiguration get_configuration(INIReader& reader, std::string& deviceName, bool hasPickupSwitch)
+{
+    GuitarDeviceConfiguration configuration;
+    configuration.HasPickupSwitch = hasPickupSwitch;
+    configuration.TiltSensitivity = reader.GetInteger(deviceName, "TiltSensitivity", 130);
+    configuration.TiltDeadZone = reader.GetInteger(deviceName, "TiltDeadZone", 20);
+    return configuration;
 }
 
 //
@@ -287,6 +358,21 @@ int main()
     if (!SetConsoleCtrlHandler(signal_handler, TRUE))
     {
         show_error("[ERROR] Failed to set console handler!");
+        return 1;
+    }
+
+    // initialize configuration file
+    if (!std::filesystem::is_regular_file("clipper.ini"))
+    {
+        if (!write_default_config_file())
+        {
+            return 1;
+        }
+    }
+    INIReader iniReader("clipper.ini");
+    if (iniReader.ParseError() != 0)
+    {
+        show_error("[ERROR] Failed to parse clipper.ini: %s", iniReader.ParseErrorMessage().c_str());
         return 1;
     }
 
@@ -319,20 +405,21 @@ int main()
     {
         hid_device_info* devices = hid_enumerate(0, 0);
         hid_device_info* deviceInfo = devices;
+        std::string deviceName;
         bool hasPickupSwitch = false;
 
         while (deviceInfo->next)
         {
-            if (is_valid_device(deviceInfo, hasPickupSwitch) &&
+            if (is_valid_device(deviceInfo, deviceName, hasPickupSwitch) &&
                 !has_device_open(deviceInfo))
             {   
-                printf("[INFO] Found device: %ls at %s\n", deviceInfo->product_string, deviceInfo->path);
+                printf("[INFO] Found device: %s at %s\n", deviceName.c_str(), deviceInfo->path);
 
                 hid_device* hidDevice = open_device(deviceInfo);
                 if (hidDevice != nullptr)
                 {
-                    printf("[INFO] Opened device: %ls, starting poll thread...\n", deviceInfo->product_string);
-                    launch_poll_thread(client, hidDevice, deviceInfo->path, hasPickupSwitch);
+                    printf("[INFO] Opened device: %s, starting poll thread...\n", deviceName.c_str());
+                    launch_poll_thread(client, hidDevice, deviceInfo->path, get_configuration(iniReader, deviceName, hasPickupSwitch));
                 }
             }
 
