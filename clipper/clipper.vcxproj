@@ -158,6 +158,14 @@
     <ClCompile Include="..\3rdParty\inih\ini.c" />
     <ClCompile Include="..\3rdParty\ViGEmClient\src\ViGEmClient.cpp" />
     <ClCompile Include="clipper.cpp" />
+    <ClCompile Include="drum.cpp" />
+    <ClCompile Include="guitar.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="clipper.hpp" />
+    <ClInclude Include="drum.hpp" />
+    <ClInclude Include="guitar.hpp" />
+    <ClInclude Include="types.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
