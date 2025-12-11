@@ -158,6 +158,11 @@ void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string d
         if (buffer[BUF_CYMBAL_GREEN])
             virtual_report.wButtons |= XUSB_GAMEPAD_A | XUSB_GAMEPAD_RIGHT_SHOULDER;
 
+        if (buffer[BUF_CYMBAL_YELLOW])
+            virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_UP;
+        else if (buffer[BUF_CYMBAL_BLUE])
+            virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_DOWN;
+
         if (buffer[BUF_KICK] & BTN_MASK_KICK_1)
             virtual_report.wButtons |= XUSB_GAMEPAD_LEFT_SHOULDER;
         if (buffer[BUF_KICK] & BTN_MASK_KICK_2)
