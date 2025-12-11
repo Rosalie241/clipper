@@ -124,7 +124,7 @@ static std::vector<std::thread> l_PollThreads;
 
 static void show_error(const char* fmt, ...)
 {
-    char error[256] = { 0 };
+    char error[1024] = { 0 };
     va_list args;
     va_start(args, fmt);
     vsnprintf(error, sizeof(error), fmt, args);
