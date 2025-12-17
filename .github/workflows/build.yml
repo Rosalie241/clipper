@@ -1,0 +1,61 @@
+name: clipper
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_x86
+      - name: Prepare Environment
+        run: |
+          $env:revision = git describe --tags --always
+          echo "GIT_REVISION=$env:revision" >> $env:GITHUB_ENV
+        shell: pwsh
+      - name: Build clipper
+        run: |
+          msbuild "clipper" `
+            /p:Configuration=Release `
+            /p:Platform=Win32 `
+            /m
+      - name: Rename clipper
+        run: |
+          Copy-Item clipper/bin/Release/clipper.exe "clipper-${env:GIT_REVISION}.exe"
+        shell: pwsh
+      - name: Upload clipper
+        uses: actions/upload-artifact@v5
+        with:
+          name: clipper-${{ env.GIT_REVISION }}
+          path: clipper-${{ env.GIT_REVISION }}.exe
+  publish-github:
+    runs-on: ubuntu-22.04
+    needs: [ build ]
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Prepare Environment
+        run: |
+          echo "GIT_REVISION=$(git describe --always)" >> $GITHUB_ENV
+      - name: Download clipper
+        uses: actions/download-artifact@v5
+        with:
+          name: clipper-${{ env.GIT_REVISION }}
+          path: artifact
+      - name: Update Git Tag
+        run: |
+          git tag -f rolling-release
+          git push -f origin rolling-release
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          prerelease: false
+          allowUpdates: true
+          removeArtifacts: true
+          replacesArtifacts: false
+          tag: rolling-release
+          artifacts: artifact/clipper-${{ env.GIT_REVISION }}.exe
