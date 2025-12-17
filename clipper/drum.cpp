@@ -187,11 +187,11 @@ void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string d
 
         if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_UP)
             virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_UP;
-        if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_DOWN)
+        else if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_DOWN)
             virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_DOWN;
-        if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_LEFT)
+        else if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_LEFT)
             virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_LEFT;
-        if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_RIGHT)
+        else if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_RIGHT)
             virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_RIGHT;
 
         vigem_target_x360_update(client, gamepad, virtual_report);
