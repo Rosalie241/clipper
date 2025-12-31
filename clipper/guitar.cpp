@@ -39,11 +39,7 @@ enum
     BTN_MASK_FRET_4 = 0b00001000,
     BTN_MASK_FRET_5 = 0b00010000,
 
-    BTN_MASK_DPAD       = 0b00001111,
-    BTN_MASK_DPAD_UP    = 0b00000000,
-    BTN_MASK_DPAD_DOWN  = 0b00000100,
-    BTN_MASK_DPAD_LEFT  = 0b00000110,
-    BTN_MASK_DPAD_RIGHT = 0b00000010,
+    BTN_MASK_DPAD   = 0b00001111,
 
     BTN_MASK_STICK  = 0b01000000,
     BTN_MASK_START  = 0b00100000,
@@ -121,6 +117,11 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
     {
         0xE0, 0xAB, 0x79, 0x4B, 0x17
     };
+    const BYTE dpad_values[]
+    {
+        0x1, 0x9, 0x8, 0xA,
+        0x2, 0x6, 0x4, 0x5
+    };
     const double tiltSensitivity = configuration.TiltSensitivity / 100.0;
     const SHORT tiltDeadZone = static_cast<SHORT>(MAXSHORT * (configuration.TiltDeadZone / 100.0));
 
@@ -170,10 +171,7 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
             ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_START) >> 1) |
             ((buffer[BUF_SYSTEM_BTNS] & BTN_MASK_SELECT) << 1) |
             ((buffer[BUF_PS_BTN] & BTN_MASK_HOME) << 10) |
-            ((buffer[BUF_DPAD] == BTN_MASK_DPAD_UP)) |
-            ((buffer[BUF_DPAD] == BTN_MASK_DPAD_DOWN) << 1) |
-            ((buffer[BUF_DPAD] == BTN_MASK_DPAD_LEFT) << 2) |
-            ((buffer[BUF_DPAD] == BTN_MASK_DPAD_RIGHT) << 3);
+            ((dpad_values[buffer[BUF_DPAD]]));
 
         virtual_report.sThumbRX = ((buffer[BUF_WHAMMY] * 255) - 32767);
 
@@ -186,7 +184,7 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
 
         if (configuration.HasPickupSwitch)
         {
-            virtual_report.bLeftTrigger = pickup_values[(buffer[BUF_PICKUP])];
+            virtual_report.bLeftTrigger = pickup_values[buffer[BUF_PICKUP]];
         }
 
         vigem_target_x360_update(client, gamepad, virtual_report);
