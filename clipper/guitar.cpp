@@ -125,8 +125,8 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
         0x0, 0x0, 0x0, 0x0,
         0x0, 0x0, 0x0, 0x0
     };
-    const double tiltSensitivity = configuration.TiltSensitivity / 100.0;
-    const SHORT tiltDeadZone = static_cast<SHORT>(MAXSHORT * (configuration.TiltDeadZone / 100.0));
+    const double tilt_sensitivity = configuration.TiltSensitivity / 100.0;
+    const SHORT tilt_deadzone = static_cast<SHORT>(MAXSHORT * (configuration.TiltDeadZone / 100.0));
 
     PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
     if (gamepad == nullptr)
@@ -179,8 +179,8 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
         virtual_report.sThumbRX = ((buffer[BUF_WHAMMY] * 255) - 32767);
 
         // account for deadzone
-        const SHORT tiltValue = static_cast<SHORT>(min((buffer[BUF_TILT] * (128 * tiltSensitivity)), MAXSHORT));
-        virtual_report.sThumbRY = (tiltValue < tiltDeadZone ? 0 : tiltValue);
+        const SHORT tilt_value = static_cast<SHORT>(min((buffer[BUF_TILT] * (128 * tilt_sensitivity)), MAXSHORT));
+        virtual_report.sThumbRY = (tilt_value < tilt_deadzone ? 0 : tilt_value);
 
         virtual_report.sThumbLX = ((buffer[BUF_STICK_X] * 255) - 32767);
         virtual_report.sThumbLY = ((buffer[BUF_STICK_Y] * 255) - 32767);
