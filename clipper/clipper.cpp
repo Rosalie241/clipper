@@ -250,7 +250,7 @@ int main()
         return 1;
     }
 
-    puts("[INFO] Waiting for device...");
+    puts("[INFO] Waiting for devices...");
     while (IsRunning)
     {
         hid_device_info* devices = hid_enumerate(0, 0);
