@@ -120,7 +120,10 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
     const BYTE dpad_values[]
     {
         0x1, 0x9, 0x8, 0xA,
-        0x2, 0x6, 0x4, 0x5
+        0x2, 0x6, 0x4, 0x5,
+        // padding to prevent overflow
+        0x0, 0x0, 0x0, 0x0,
+        0x0, 0x0, 0x0, 0x0
     };
     const double tiltSensitivity = configuration.TiltSensitivity / 100.0;
     const SHORT tiltDeadZone = static_cast<SHORT>(MAXSHORT * (configuration.TiltDeadZone / 100.0));
@@ -184,7 +187,9 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
 
         if (configuration.HasPickupSwitch)
         {
-            virtual_report.bLeftTrigger = pickup_values[buffer[BUF_PICKUP]];
+            virtual_report.bLeftTrigger = (buffer[BUF_PICKUP] >= sizeof(pickup_values)) 
+                                            ? 0
+                                            : pickup_values[buffer[BUF_PICKUP]];
         }
 
         vigem_target_x360_update(client, gamepad, virtual_report);
