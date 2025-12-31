@@ -117,7 +117,7 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
     {
         0xE0, 0xAB, 0x79, 0x4B, 0x17
     };
-    const BYTE dpad_values[]
+    const BYTE dpad_values[] =
     {
         0x1, 0x9, 0x8, 0xA,
         0x2, 0x6, 0x4, 0x5,
