@@ -138,7 +138,7 @@ void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string
     }
 
     // set vendor and product ID to match
-    // what rb4instrumentmapper provides
+    // what RB4InstrumentMapper provides
     vigem_target_set_vid(gamepad, 0x1BAD);
     vigem_target_set_pid(gamepad, 0x0719);
 

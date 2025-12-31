@@ -119,6 +119,11 @@ void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string d
         return;
     }
 
+    // set vendor and product ID to match
+    // what RB4InstrumentMapper provides
+    vigem_target_set_vid(gamepad, 0x1BAD);
+    vigem_target_set_pid(gamepad, 0x0719);
+
     VIGEM_ERROR vigem_ret = vigem_target_add(client, gamepad);
     if (vigem_ret != VIGEM_ERROR_NONE)
     {
