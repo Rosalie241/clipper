@@ -39,11 +39,7 @@ enum
 
     BTN_MASK_GUIDE = 0b00000001,
 
-    BTN_MASK_DPAD       = 0b00001111,
-    BTN_MASK_DPAD_UP    = 0b00000000,
-    BTN_MASK_DPAD_DOWN  = 0b00000100,
-    BTN_MASK_DPAD_LEFT  = 0b00000110,
-    BTN_MASK_DPAD_RIGHT = 0b00000010,
+    BTN_MASK_DPAD = 0b00001111,
 };
 
 enum
@@ -109,6 +105,14 @@ void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string d
     int ret;
     unsigned char buffer[64];
     XUSB_REPORT virtual_report = { 0 };
+    const BYTE dpad_values[] =
+    {
+        0x1, 0x9, 0x8, 0xA,
+        0x2, 0x6, 0x4, 0x5,
+        // padding to prevent overflow
+        0x0, 0x0, 0x0, 0x0,
+        0x0, 0x0, 0x0, 0x0
+    };
 
     PVIGEM_TARGET gamepad = vigem_target_x360_alloc();
     if (gamepad == nullptr)
@@ -190,14 +194,7 @@ void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string d
         if (buffer[BUF_GUIDE] & BTN_MASK_GUIDE)
             virtual_report.wButtons |= XUSB_GAMEPAD_GUIDE;
 
-        if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_UP)
-            virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_UP;
-        else if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_DOWN)
-            virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_DOWN;
-        else if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_LEFT)
-            virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_LEFT;
-        else if ((buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD) == BTN_MASK_DPAD_RIGHT)
-            virtual_report.wButtons |= XUSB_GAMEPAD_DPAD_RIGHT;
+        virtual_report.wButtons |= dpad_values[(buffer[BUF_FACE_BTNS] & BTN_MASK_DPAD)];
 
         vigem_target_x360_update(client, gamepad, virtual_report);
     }
