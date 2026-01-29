@@ -27,8 +27,9 @@ enum
     PS4_STRATOCASTER_VENDOR_ID  = 0x0738,
     PS4_STRATOCASTER_PRODUCT_ID = 0x8261,
 
-    PS4_GIBSONSG_VENDOR_ID  = 0x3651,
-    PS4_GIBSONSG_PRODUCT_ID = 0x5500,
+    PS4_GIBSONSG_VENDOR_ID    = 0x3651,
+    PS4_GIBSONSG_PRODUCT_ID_1 = 0x5500,
+    PS4_GIBSONSG_PRODUCT_ID_2 = 0x1500,
 };
 
 enum
@@ -84,7 +85,8 @@ static const GuitarDevice l_SupportedGuitarDevices[] =
     {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster"      , false},
     {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , "PDP Jaguar"          , false},
     {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, "MadCatz Stratocaster", true},
-    {PS4_GIBSONSG_VENDOR_ID    , PS4_GIBSONSG_PRODUCT_ID    , "CRKD Gibson SG"      , false},
+    {PS4_GIBSONSG_VENDOR_ID    , PS4_GIBSONSG_PRODUCT_ID_1  , "CRKD Gibson SG"      , false},
+    {PS4_GIBSONSG_VENDOR_ID    , PS4_GIBSONSG_PRODUCT_ID_2  , "CRKD Gibson SG"      , false},
 };
 
 //
