@@ -74,7 +74,7 @@ struct DrumDevice
 // Local Variables
 //
 
-static const DrumDevice l_SupportedDrumDevices[] =
+static const DrumDevice l_SupportedPS4DrumDevices[] =
 {
     {PS4_MADCATZ_DRUMSET_VENDOR_ID, PS4_MADCATZ_DRUMSET_PRODUCT_ID, "MadCatz Drum Set"},
     {PS4_PDP_DRUMSET_VENDOR_ID, PS4_PDP_DRUMSET_PRODUCT_ID, "PDP Drum Set"}
@@ -84,15 +84,15 @@ static const DrumDevice l_SupportedDrumDevices[] =
 // Exported Functions
 //
 
-bool IsValidDrum(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType)
+bool IsValidPS4Drum(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType)
 {
-    for (const DrumDevice& drumDevice : l_SupportedDrumDevices)
+    for (const DrumDevice& drumDevice : l_SupportedPS4DrumDevices)
     {
         if (deviceInfo->product_id == drumDevice.ProductId &&
             deviceInfo->vendor_id == drumDevice.VendorId)
         {
             deviceName = drumDevice.ProductName;
-            deviceType = DeviceType::Drum;
+            deviceType = DeviceType::PS4Drum;
             return true;
         }
     }
@@ -100,7 +100,7 @@ bool IsValidDrum(hid_device_info* deviceInfo, std::string& deviceName, DeviceTyp
     return false;
 }
 
-void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath)
+void PS4DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath)
 {
     int ret;
     unsigned char buffer[64];
@@ -146,10 +146,6 @@ void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string d
             break;
         }
 
-        // sadly we cannot use bitshifts for most of these,
-        // the drum values seem to change randomly so we're
-        // just going to use old-school if statements even though
-        // that's likely to be a little bit slower
         virtual_report.wButtons = 0;
         if (buffer[BUF_DRUM_RED])
             virtual_report.wButtons |= XUSB_GAMEPAD_B;

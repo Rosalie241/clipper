@@ -12,8 +12,9 @@
 
 enum class DeviceType
 {
-    Guitar,
-    Drum,
+    PS4Guitar,
+    PS5Guitar,
+    PS4Drum,
 };
 
 #endif // TYPES_HPP

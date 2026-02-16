@@ -17,9 +17,9 @@
 #include "types.hpp"
 
 // returns whether device is a valid drum
-bool IsValidDrum(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType);
+bool IsValidPS4Drum(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType);
 
 // input thread for drums
-void DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath);
+void PS4DrumPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath);
 
 #endif // DRUM_HPP

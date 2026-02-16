@@ -91,8 +91,9 @@ static bool is_valid_device(hid_device_info* deviceInfo, std::string& deviceName
         return false;
     }
 
-    return IsValidGuitar(deviceInfo, deviceName, deviceType, hasPickupSwitch) ||
-           IsValidDrum(deviceInfo, deviceName, deviceType);
+    return IsValidPS4Guitar(deviceInfo, deviceName, deviceType, hasPickupSwitch) ||
+           IsValidPS5Guitar(deviceInfo, deviceName, deviceType) ||
+           IsValidPS4Drum(deviceInfo, deviceName, deviceType);
 }
 
 static bool has_device_open(hid_device_info* deviceInfo)
@@ -130,11 +131,14 @@ static void launch_poll_thread(PVIGEM_CLIENT client, hid_device* device, std::st
 {
     switch (deviceType)
     {
-    case DeviceType::Guitar:
-        l_PollThreads.push_back(std::thread(GuitarPollInputThread, client, device, devicePath, configuration));
+    case DeviceType::PS4Guitar:
+        l_PollThreads.push_back(std::thread(PS4GuitarPollInputThread, client, device, devicePath, configuration));
         break;
-    case DeviceType::Drum:
-        l_PollThreads.push_back(std::thread(DrumPollInputThread, client, device, devicePath));
+    case DeviceType::PS5Guitar:
+        l_PollThreads.push_back(std::thread(PS5GuitarPollInputThread, client, device, devicePath, configuration));
+        break;
+    case DeviceType::PS4Drum:
+        l_PollThreads.push_back(std::thread(PS4DrumPollInputThread, client, device, devicePath));
         break;
     default:
         break;

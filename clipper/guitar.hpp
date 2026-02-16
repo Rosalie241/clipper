@@ -23,10 +23,16 @@ struct GuitarDeviceConfiguration
     bool HasPickupSwitch = false;
 };
 
-// returns whether device is a valid guitar
-bool IsValidGuitar(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType, bool& hasPickupSwitch);
+// returns whether device is a valid PS4 guitar
+bool IsValidPS4Guitar(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType, bool& hasPickupSwitch);
 
-// input thread for guitars
-void GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, GuitarDeviceConfiguration configuration);
+// returns whether device is a valid PS5 guitar
+bool IsValidPS5Guitar(hid_device_info* deviceInfo, std::string& deviceName, DeviceType& deviceType);
+
+// input thread for PS4 guitars
+void PS4GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, GuitarDeviceConfiguration configuration);
+
+// input thread for PS5 guitars
+void PS5GuitarPollInputThread(PVIGEM_CLIENT client, hid_device* device, std::string devicePath, GuitarDeviceConfiguration configuration);
 
 #endif // GUITAR_HPP
