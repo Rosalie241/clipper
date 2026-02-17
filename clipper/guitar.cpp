@@ -120,18 +120,18 @@ struct GuitarDevice
 
 static const GuitarDevice l_SupportedPS4GuitarDevices[] =
 {
-    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster (PS4)", false},
+    {PS4_RIFFMASTER_VENDOR_ID  , PS4_RIFFMASTER_PRODUCT_ID  , "PDP Riffmaster"      , false},
     {PS4_JAGUAR_VENDOR_ID      , PS4_JAGUAR_PRODUCT_ID      , "PDP Jaguar"          , false},
     {PS4_STRATOCASTER_VENDOR_ID, PS4_STRATOCASTER_PRODUCT_ID, "MadCatz Stratocaster", true},
-    {PS4_GIBSONSG_VENDOR_ID    , PS4_GIBSONSG_DONGLE_PRODUCT_ID, "CRKD Gibson SG (PS4)", false},
-    {PS4_GIBSONSG_VENDOR_ID    , PS4_GIBSONSG_PRODUCT_ID       , "CRKD Gibson SG (PS4)", false},
+    {PS4_GIBSONSG_VENDOR_ID    , PS4_GIBSONSG_DONGLE_PRODUCT_ID, "CRKD Gibson SG", false},
+    {PS4_GIBSONSG_VENDOR_ID    , PS4_GIBSONSG_PRODUCT_ID       , "CRKD Gibson SG", false},
 };
 
 static const GuitarDevice l_SupportedPS5GuitarDevices[] =
 {
-    {PS5_RIFFMASTER_VENDOR_ID, PS5_RIFFMASTER_PRODUCT_ID     , "PDP Riffmaster (PS5)", false},
-    {PS5_GIBSONSG_VENDOR_ID  , PS5_GIBSONSG_DONGLE_PRODUCT_ID, "CRKD Gibson SG (PS5)", false},
-    {PS5_GIBSONSG_VENDOR_ID  , PS5_GIBSONSG_PRODUCT_ID       , "CRKD Gibson SG (PS5)", false},
+    {PS5_RIFFMASTER_VENDOR_ID, PS5_RIFFMASTER_PRODUCT_ID     , "PDP Riffmaster", false},
+    {PS5_GIBSONSG_VENDOR_ID  , PS5_GIBSONSG_DONGLE_PRODUCT_ID, "CRKD Gibson SG", false},
+    {PS5_GIBSONSG_VENDOR_ID  , PS5_GIBSONSG_PRODUCT_ID       , "CRKD Gibson SG", false},
 };
 
 //
